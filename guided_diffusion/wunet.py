@@ -708,14 +708,19 @@ class WavUNetModel(nn.Module):
             nn.SiLU(),
             conv_nd(dims, model_channels, out_channels, 3, padding=1),
         )
-
+    
+    ### For now it is outcommented since the usage is not what we want
+    """
     def to(self, *args, **kwargs):
-        """
+    
         we overwrite the to() method for the case where we
         distribute parts of our model to different devices
-        """
+        
         if isinstance(args[0], (list, tuple)) and len(args[0]) > 1:
+            print("Error here 0")
             assert not kwargs and len(args) == 1
+            print("Error here 1")
+
             # distribute to multiple devices
             self.devices = args[0]
             # move first half to first device, second half to second device
@@ -736,7 +741,9 @@ class WavUNetModel(nn.Module):
             if self.devices is None:  # if self.devices has not been set yet, read it from params
                 p = next(self.parameters())
                 self.devices = [p.device, p.device]
-
+                print("Error here 3")
+    """
+    
     def forward(self, x, timesteps, tooth_presence=None):
         """
         Apply the model to an input batch.

@@ -203,9 +203,14 @@ class ToothVolumes(torch.utils.data.Dataset):
 
             cond_label[upper] = 17 - cond_label[upper]
             cond_label[lower] = 49 - cond_label[lower]
-
+            
+            # flip tooth presence vector
+            tooth_presence_flipped = torch.zeros_like(vectors["tooth_presence"])
+            tooth_presence_flipped[:16] = vectors["tooth_presence"][:16].flip(0)
+            tooth_presence_flipped[16:] = vectors["tooth_presence"][16:].flip(0)
+            vectors["tooth_presence"] = tooth_presence_flipped
                         
-        if self.mode in ['fake', 'eval']:
+        if self.mode in ['eval']:
             return {
                 "image": image,
                 "label": label,
@@ -213,10 +218,6 @@ class ToothVolumes(torch.utils.data.Dataset):
                 "cond_label": cond_label,
                 "name": [basename],
                 "tooth_presence": vectors["tooth_presence"],
-                #"crown_fill": vectors["crown_fill"],
-                #"root_crown": vectors["root_crown"],
-                #"bridge": vectors["bridge"],
-                #"implant": vectors["implant"],
             }
 
         return {
@@ -225,10 +226,6 @@ class ToothVolumes(torch.utils.data.Dataset):
             "cond_image": cond_image,
             "cond_label": cond_label,
             "tooth_presence": vectors["tooth_presence"],
-            #"crown_fill": vectors["crown_fill"],
-            #"root_crown": vectors["root_crown"],
-            #"bridge": vectors["bridge"],
-            #"implant": vectors["implant"],
         }
     def __len__(self):
         return len(self.database)
@@ -250,7 +247,11 @@ def inpaint_teeth(image_np, label_np, tooth_ids, sphere_radius=2):
     dist, (inds_z, inds_y, inds_x) = distance_transform_edt(missing, return_indices=True)
 
     V2 = image_np.copy()
-    V2[teeth_mask] = image_np[inds_z[teeth_mask],inds_y[teeth_mask],inds_x[teeth_mask]]
+    V2[teeth_mask] = image_np[
+        inds_z[teeth_mask],
+        inds_y[teeth_mask],
+        inds_x[teeth_mask]
+    ]
 
     V2_smooth = gaussian_filter(V2, sigma=1.0)
 

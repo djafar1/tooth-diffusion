@@ -302,10 +302,6 @@ class GaussianDiffusion:
         
         # Extract tooth-specific condition vectors
         tooth_presence = model_kwargs.get('tooth_presence', None)
-        crown_fill  = model_kwargs.get('crown_fill', None)
-        root_crown     = model_kwargs.get('root_crown', None)
-        bridge         = model_kwargs.get('bridge', None)
-        implant        = model_kwargs.get('implant', None)  
 
         #Cond for tooth generation is either heatmap or heatmap + conditioing image, which is done in the generation_sample scripts. 
         if cond is not None:
@@ -313,8 +309,7 @@ class GaussianDiffusion:
         else:
             x_cond = x
         
-        model_output = model(x_cond, self._scale_timesteps(t), tooth_presence=tooth_presence, 
-                             crown_fill=crown_fill, root_crown=root_crown, bridge=bridge, implant=implant)
+        model_output = model(x_cond, self._scale_timesteps(t), tooth_presence=tooth_presence)
         
         if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
             assert model_output.shape == (B, C * 2, *x.shape[2:])

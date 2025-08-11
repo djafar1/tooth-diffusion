@@ -61,7 +61,7 @@ class ScheduleSampler(ABC):
 class UniformSampler(ScheduleSampler):
     def __init__(self, diffusion, maxt):
         self.diffusion = diffusion
-        print(maxt)
+        print("maxt: ", maxt)
         self._weights = np.ones([maxt])
 
     def weights(self):

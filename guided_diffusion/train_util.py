@@ -68,6 +68,7 @@ class TrainLoop:
         self.image_size = image_size
         self.microbatch = microbatch if microbatch > 0 else batch_size
         self.lr = lr
+        print("Using learning rate: ", self.lr)
         self.ema_rate = (
             [ema_rate]
             if isinstance(ema_rate, float)
@@ -122,6 +123,9 @@ class TrainLoop:
             if not dist.is_initialized() or dist.get_rank() == 0:
                 logger.log(f"Loading model from checkpoint: {resume_checkpoint}...")
                 state_dict = th.load(self.resume_checkpoint, map_location="cpu")
+                if any(k.startswith("module.") for k in state_dict.keys()):
+                    new_state_dict = {k.replace("module.", ""): v for k, v in state_dict.items()}
+                    state_dict = new_state_dict
                 self.model.module.load_state_dict(state_dict)
         if dist.is_initialized():       
             dist.barrier()
@@ -172,7 +176,6 @@ class TrainLoop:
                 if hasattr(self.datal, 'sampler') and hasattr(self.datal.sampler, 'set_epoch'):
                     shuffle_seed = self.step + self.resume_step
                     self.datal.sampler.set_epoch(shuffle_seed)
-                    logger.info(f"Rank {self.rank}: Set data shuffle seed to {shuffle_seed}")
                 self.iterdatal = iter(self.datal)
                 batch = next(self.iterdatal)
                 cond = {}
@@ -376,6 +379,14 @@ class TrainLoop:
                 self.grad_scaler.scale(loss).backward()
             else:
                 loss.backward()
+                if self.step % 50 == 0:
+                    for name, param in self.model.named_parameters():
+                        if param.grad is not None:
+                            grad_mean = param.grad.mean().item()
+                            logger.log(f"[Step {self.step}] [Rank {self.rank}] {name} grad mean: {grad_mean:.4e}")
+                        break
+            
+
                 
             return lossmse.detach(), sample, sample_idwt
 
