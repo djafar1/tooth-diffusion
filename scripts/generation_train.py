@@ -12,9 +12,6 @@ sys.path.append(".")
 sys.path.append("..")
 
 from guided_diffusion import logger
-from guided_diffusion.bratsloader import BRATSVolumes
-from guided_diffusion.lidcloader import LIDCVolumes
-from guided_diffusion.mriloader import MRIVolumes
 from guided_diffusion.toothloader import ToothVolumes
 from guided_diffusion.resample import create_named_schedule_sampler
 from guided_diffusion.script_util import (model_and_diffusion_defaults,
@@ -72,29 +69,7 @@ def main():
     logger.log(f"Rank {rank}: Creating schedule sampler...")
     schedule_sampler = create_named_schedule_sampler(args.schedule_sampler, diffusion,  maxt=diffusion.num_timesteps)
 
-    if args.dataset == 'brats':
-        assert args.image_size in [128, 256], "We currently just support image sizes: 128, 256"
-        ds = BRATSVolumes(args.data_dir, test_flag=False,
-                          normalize=(lambda x: 2*x - 1) if args.renormalize else None,
-                          mode='train',
-                          img_size=args.image_size)
-
-    elif args.dataset == 'lidc-idri':
-        assert args.image_size in [128, 256], "We currently just support image sizes: 128, 256"
-        ds = LIDCVolumes(args.data_dir, test_flag=False,
-                         normalize=(lambda x: 2*x - 1) if args.renormalize else None,
-                         mode='train',
-                         img_size=args.image_size)
-        
-    elif args.dataset == 'my_data':
-        assert args.image_size in [128, 256], "We currently just support image sizes: 128, 256"
-        ds = MRIVolumes(args.data_dir, args.meta_data, test_flag=False, #pass data_dir and meta_data 
-                          normalize=(lambda x: 2*x - 1) if args.renormalize else None,
-                          mode='train',
-                          img_size=args.image_size,
-                          )
-        
-    elif args.dataset == 'tooth':
+    if args.dataset == 'tooth':
         assert args.image_size in [128, 256], "We currently just support image sizes: 128, 256"
         ds = ToothVolumes(
             directory=args.data_dir,
@@ -108,7 +83,7 @@ def main():
         )
 
     else:
-        print("We currently just support the datasets: brats, lidc-idri, my_data, tooth")
+        print("We currently just support the datasets: tooth")
 
     logger.log(f"Rank {rank}: Creating dataset...")
     sampler = DistributedSampler(ds, num_replicas=world_size, rank=rank, shuffle=True)
@@ -150,7 +125,6 @@ def main():
     ).run_loop()
     
     dist.destroy_process_group()
-
 
 def create_argparser():
     defaults = dict(

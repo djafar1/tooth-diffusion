@@ -9,20 +9,14 @@ TARGET=${2:-teeth}
 RESUME_CHECKPOINT=${3:-}  
 CONDITIONING_IMAGE=${4:-none}
 
-
-AUGMENT_MISSING=False; # whether to augment missing teeth for training
-RECONSTRUCT_3_MODE=True; # For training the model with 3 different scenaries, regular, add and removal of teeth
+# Settings for training 
+AUGMENT_MISSING=False; # Whether to augment missing teeth for training done for model without conditioning image
+RECONSTRUCT_3_MODE=True; # For training the model with 3 different scenarios, regular, add and removal of teeth done for model with conditioning image
 
 # settings for sampling/inference
 ITERATIONS=1200;        # training iteration (as a multiple of 1k) checkpoint to use for sampling
 SAMPLING_STEPS=0        # number of steps for accelerated sampling, 0 for the default 1000
 RUN_DIR="";             # tensorboard dir to be set for the evaluation
-
-# Settings for sampling slicing USED for generation_sample_30.py, when generating samples 
-# but splitting the load for different GPUs
-SLICE_START=${5:-0}
-SLICE_END=${6:-0}
-
 
 # detailed settings (no need to change for reproducing)
 if [[ $MODEL == 'ours_unet_128' ]]; then
@@ -72,21 +66,8 @@ if [[ $MODE == 'sample' ]]; then
   BATCH_SIZE=1;
   DATA_DIR=../prep_data/train;
   META_DATA=../prep_data/MetaData.xlsx
-elif [[ $MODE == 'train' || $MODE == 'bdtrain' ]]; then
-  if [[ $DATASET == 'brats' ]]; then
-    echo "MODE: training";
-    echo "DATASET: BRATS";
-    DATA_DIR=~/wdm-3d/data/BRATS/;
-  elif [[ $DATASET == 'lidc-idri' ]]; then
-    echo "MODE: training";
-    echo "Dataset: LIDC-IDRI";
-    DATA_DIR=~/wdm-3d/data/LIDC-IDRI/;
-  elif [[ $DATASET == 'my_data' ]]; then
-    echo "MODE: training";
-    echo "Dataset: Given to me";
-    DATA_DIR=../data/train;
-    META_DATA=../data/metadata.csv
-  elif [[ $DATASET == 'tooth' ]]; then
+elif [[ $MODE == 'train']]; then
+  if [[ $DATASET == 'tooth' ]]; then
     echo "MODE: training";
     echo "DATASET: TOOTH"
     DATA_DIR=../prep_data/train;
@@ -136,15 +117,13 @@ TRAIN="
 --image_size=${IMAGE_SIZE}
 --use_fp16=False
 --lr=1e-5
---save_interval=10000
+--save_interval=50000
 --num_workers=10
 --devices=${GPU}
 "
 SAMPLE="
 --data_dir=${DATA_DIR}
 --meta_data=${META_DATA}
---slice_start=${SLICE_START}
---slice_end=${SLICE_END}
 --group_csv=${GROUP_CSV}
 --data_mode=${DATA_MODE}
 --seed=${SEED}
@@ -164,7 +143,7 @@ if [[ $MODE == 'train' || $MODE == 'bdtrain' ]]; then
   echo "Training mode: $MODE";
   echo "Target: $TARGET";
   echo "Condition image: $CONDITIONING_IMAGE";
-  CUDA_VISIBLE_DEVICES=$GPU OMP_NUM_THREADS=1 torchrun --nproc_per_node=1 --master_port=12346 scripts/generation_train.py $TRAIN $COMMON
+  CUDA_VISIBLE_DEVICES=$GPU OMP_NUM_THREADS=1 torchrun --nproc_per_node=1 --master_port=12345 scripts/generation_train.py $TRAIN $COMMON
 else
-  python scripts/generation_sample_brain_approach3.py $SAMPLE $COMMON;
+  python scripts/generation_sample_brain_approac.py $SAMPLE $COMMON;
 fi

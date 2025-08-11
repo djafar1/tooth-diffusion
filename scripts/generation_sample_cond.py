@@ -21,9 +21,6 @@ from guided_diffusion.script_util import (model_and_diffusion_defaults,
                                           args_to_dict,
                                           )
 from DWT_IDWT.DWT_IDWT_layer import IDWT_3D, DWT_3D
-from guided_diffusion.mriloader import MRIVolumes
-
-
 
 def visualize(img):
     _min = img.min()
@@ -134,8 +131,6 @@ def create_argparser():
         meta_data="",
         atlas_label_path="",
         group_csv="",
-        slice_start=0,
-        slice_end=None,
         data_mode='validation',
         clip_denoised=True,
         num_samples=1,

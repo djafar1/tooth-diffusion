@@ -216,8 +216,6 @@ def create_argparser():
         meta_data="",
         atlas_label_path="",
         group_csv="",
-        slice_start=0,
-        slice_end=None,
         data_mode='validation',
         clip_denoised=True,
         num_samples=1,
