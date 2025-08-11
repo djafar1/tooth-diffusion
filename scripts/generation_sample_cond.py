@@ -1,0 +1,163 @@
+"""
+A script for sampling from a diffusion model for unconditional image generation.
+"""
+
+import argparse
+import nibabel as nib
+import numpy as np
+import os
+import pathlib
+import random
+import sys
+import torch as th
+
+sys.path.append(".")
+
+from guided_diffusion import (dist_util,
+                              logger)
+from guided_diffusion.script_util import (model_and_diffusion_defaults,
+                                          create_model_and_diffusion,
+                                          add_dict_to_argparser,
+                                          args_to_dict,
+                                          )
+from DWT_IDWT.DWT_IDWT_layer import IDWT_3D, DWT_3D
+from guided_diffusion.mriloader import MRIVolumes
+
+
+
+def visualize(img):
+    _min = img.min()
+    _max = img.max()
+    normalized_img = (img - _min)/ (_max - _min)
+    return normalized_img
+
+
+def dice_score(pred, targs):
+    pred = (pred>0).float()
+    return 2. * (pred*targs).sum() / (pred+targs).sum()
+
+
+def main():
+    args = create_argparser().parse_args()
+    seed = args.seed
+    dist_util.setup_dist(devices=args.devices)
+    logger.configure()
+
+    logger.log("Creating model and diffusion...")
+    model, diffusion = create_model_and_diffusion(
+        **args_to_dict(args, model_and_diffusion_defaults().keys())
+    )
+    logger.log("Load model from: {}".format(args.model_path))
+    model.load_state_dict(dist_util.load_state_dict(args.model_path, map_location="cpu"))
+    model.to(dist_util.dev([0, 1]) if len(args.devices) > 1 else dist_util.dev())  # allow for 2 devices
+
+    if args.use_fp16:
+        raise ValueError("fp16 currently not implemented")
+        
+    model.eval()
+    idwt = IDWT_3D("haar")
+    dwt = DWT_3D("haar")
+
+    th.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    
+    for idx in range(args.num_samples):
+        th.manual_seed(seed)
+        np.random.seed(seed)
+        random.seed(seed)
+        seed += 10
+        
+        # Specific conditions for sampling
+        tooth_presence = np.array([1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1], dtype=np.float32)
+        crown_fill     = np.zeros(32, dtype=np.float32)
+        root_crown     = np.zeros(32, dtype=np.float32)
+        bridge         = np.zeros(32, dtype=np.float32)
+        implant        = np.zeros(32, dtype=np.float32)
+        implant[13] = 1.0  # tooth 14
+        implant[23] = 1.0  # tooth 24
+
+
+        model_kwargs = {
+            "tooth_presence": th.tensor(tooth_presence).unsqueeze(0).to(dist_util.dev()),
+            "crown_fill":     th.tensor(crown_fill).unsqueeze(0).to(dist_util.dev()),
+            "root_crown":     th.tensor(root_crown).unsqueeze(0).to(dist_util.dev()),
+            "bridge":         th.tensor(bridge).unsqueeze(0).to(dist_util.dev()),
+            "implant":        th.tensor(implant).unsqueeze(0).to(dist_util.dev()),
+        }
+        
+        img = th.randn(args.batch_size,         # Batch size
+                    8,                       # 8 wavelet coefficients
+                    args.image_size//2,      # Half spatial resolution (D)
+                    args.image_size//2,      # Half spatial resolution (H)
+                    args.image_size//2,      # Half spatial resolution (W)
+                    ).to(dist_util.dev())
+        
+        sample_fn = diffusion.p_sample_loop
+        
+        sample = sample_fn(model=model,
+                           shape=img.shape,
+                           noise=img,
+                           cond = None,
+                           clip_denoised=args.clip_denoised,
+                           model_kwargs=model_kwargs,
+                           )
+        
+        B, _, D, H, W = sample.size()
+
+        sample = idwt(sample[:, 0, :, :, :].view(B, 1, D, H, W) * 3.,
+                      sample[:, 1, :, :, :].view(B, 1, D, H, W),
+                      sample[:, 2, :, :, :].view(B, 1, D, H, W),
+                      sample[:, 3, :, :, :].view(B, 1, D, H, W),
+                      sample[:, 4, :, :, :].view(B, 1, D, H, W),
+                      sample[:, 5, :, :, :].view(B, 1, D, H, W),
+                      sample[:, 6, :, :, :].view(B, 1, D, H, W),
+                      sample[:, 7, :, :, :].view(B, 1, D, H, W))
+
+        sample = (sample + 1) / 2.
+
+        if len(sample.shape) == 5:
+            sample = sample.squeeze(dim=1)  # don't squeeze batch dimension for bs 1
+            
+        pathlib.Path(args.output_dir).mkdir(parents=True, exist_ok=True )
+        for i in range(sample.shape[0]):
+            output_name = os.path.join(args.output_dir, f"sample_{idx}_tooth.nii.gz")
+            img = nib.Nifti1Image(sample.detach().cpu().numpy()[i, :, :, :], np.eye(4))
+            nib.save(img=img, filename=output_name)
+            print(f'Saved to {output_name}')
+
+
+def create_argparser():
+    defaults = dict(
+        seed=0,
+        data_dir="",
+        meta_data="",
+        atlas_label_path="",
+        group_csv="",
+        slice_start=0,
+        slice_end=None,
+        data_mode='validation',
+        clip_denoised=True,
+        num_samples=1,
+        batch_size=1,
+        use_ddim=False,
+        class_cond=False,
+        sampling_steps=0,
+        model_path="",
+        devices=[0],
+        output_dir='./results',
+        mode='default',
+        renormalize=False,
+        image_size=256,
+        half_res_crop=False,
+        concat_coords=False, # if true, add 3 (for 3d) or 2 (for 2d) to in_channels
+    )
+    
+    defaults.update({k:v for k, v in model_and_diffusion_defaults().items() if k not in defaults})
+    parser = argparse.ArgumentParser()
+    add_dict_to_argparser(parser, defaults)
+    return parser
+
+
+if __name__ == "__main__":
+    main()
