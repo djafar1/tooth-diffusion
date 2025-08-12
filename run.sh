@@ -1,9 +1,13 @@
 # general settings
-GPU=2;                    # gpu to use
+GPU=0,1;                  # gpu to use
+NUMBERofGPUS=2            # number of gpus to use, should reflect what you specify on GPU variable
+MASTERPORT=12345;          # master port for distributed training
 SEED=42;                  # randomness seed for sampling
 CHANNELS=64;              # number of model base channels (we use 64 for all experiments)
 DATASET='tooth';          
-MODEL='ours_wnet_256';    # 'ours_unet_256', 'ours_wnet_128', 'ours_wnet_256'
+MODEL='ours_wnet_256';    # 'ours_wnet_256' currently only supported for wnet_256
+
+# general settings for training and sampling specified when running the script
 MODE=${1:-train}          # train vs sample
 TARGET=${2:-teeth}        
 RESUME_CHECKPOINT=${3:-}  
@@ -18,29 +22,8 @@ ITERATIONS=1200;        # training iteration (as a multiple of 1k) checkpoint to
 SAMPLING_STEPS=0        # number of steps for accelerated sampling, 0 for the default 1000
 RUN_DIR="";             # tensorboard dir to be set for the evaluation
 
-# detailed settings (no need to change for reproducing)
-if [[ $MODEL == 'ours_unet_128' ]]; then
-  echo "MODEL: WDM (U-Net) 128 x 128 x 128";
-  CHANNEL_MULT=1,2,2,4,4;
-  IMAGE_SIZE=128;
-  ADDITIVE_SKIP=True;
-  USE_FREQ=False;
-  BATCH_SIZE=10;
-elif [[ $MODEL == 'ours_unet_256' ]]; then
-  echo "MODEL: WDM (U-Net) 256 x 256 x 256";
-  CHANNEL_MULT=1,2,2,4,4,4;
-  IMAGE_SIZE=256;
-  ADDITIVE_SKIP=True;
-  USE_FREQ=False;
-  BATCH_SIZE=1;
-elif [[ $MODEL == 'ours_wnet_128' ]]; then
-  echo "MODEL: WDM (WavU-Net) 128 x 128 x 128";
-  CHANNEL_MULT=1,2,2,4,4;
-  IMAGE_SIZE=128;
-  ADDITIVE_SKIP=False;
-  USE_FREQ=True;
-  BATCH_SIZE=10;
-elif [[ $MODEL == 'ours_wnet_256' ]]; then
+# detailed settings, currently only for wnet_256 
+if [[ $MODEL == 'ours_wnet_256' ]]; then
   echo "MODEL: WDM (WavU-Net) 256 x 256 x 256";
   CHANNEL_MULT=1,2,2,4,4,4;
   IMAGE_SIZE=256;
@@ -52,8 +35,7 @@ else
   echo "MODEL TYPE NOT FOUND -> Check the supported configurations again";
 fi
 
-#Change number of channels depending on conditioning image or not. Default 8, so no else statment
-# if conditioning image is brain or skull, then 16
+# If conditioning image is none, then 8 or else 16 
 if [[ $CONDITIONING_IMAGE != 'none' ]]; then
   IN_CHANNELS=16
 fi
@@ -124,7 +106,6 @@ TRAIN="
 SAMPLE="
 --data_dir=${DATA_DIR}
 --meta_data=${META_DATA}
---group_csv=${GROUP_CSV}
 --data_mode=${DATA_MODE}
 --seed=${SEED}
 --image_size=${IMAGE_SIZE}
@@ -137,13 +118,14 @@ SAMPLE="
 --sampling_steps=${SAMPLING_STEPS}
 --clip_denoised=True
 "
-
 # run the python scripts
-if [[ $MODE == 'train' || $MODE == 'bdtrain' ]]; then
-  echo "Training mode: $MODE";
+if [[ $MODE == 'train']]; then
+  echo "Mode: $MODE";
   echo "Target: $TARGET";
   echo "Condition image: $CONDITIONING_IMAGE";
-  CUDA_VISIBLE_DEVICES=$GPU OMP_NUM_THREADS=1 torchrun --nproc_per_node=1 --master_port=12345 scripts/generation_train.py $TRAIN $COMMON
+  CUDA_VISIBLE_DEVICES=$GPU OMP_NUM_THREADS=1 \
+  torchrun --nproc_per_node=$NUMBERofGPUS --master_port=$MASTERPORT \
+    scripts/generation_train.py $TRAIN $COMMON
 else
   python scripts/generation_sample_brain_approac.py $SAMPLE $COMMON;
 fi
