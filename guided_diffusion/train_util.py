@@ -45,17 +45,19 @@ class TrainLoop:
         schedule_sampler=None,
         weight_decay=0.0,
         lr_anneal_steps=0,
-        dataset='brats',
+        dataset='tooth',
         summary_writer=None,
         mode='default',
         loss_level='image',
         target=None,
         training_mode=None,
         conditioning_image=None,
+        lambda_mask,
     ):
         self.training_mode=training_mode
         self.target = target
         self.conditioning_image = conditioning_image
+        self.lambda_mask = lambda_mask
         self.summary_writer = summary_writer
         self.mode = mode
         self.model = model
@@ -68,7 +70,7 @@ class TrainLoop:
         self.image_size = image_size
         self.microbatch = microbatch if microbatch > 0 else batch_size
         self.lr = lr
-        print("Using learning rate: ", self.lr)
+        print(f"Using learning rate: {self.lr} | Using lambda mask: {self.lambda_mask}")
         self.ema_rate = (
             [ema_rate]
             if isinstance(ema_rate, float)
@@ -83,7 +85,7 @@ class TrainLoop:
         else:
             self.grad_scaler = amp.GradScaler(enabled=False)
 
-        print(self.diffusion.num_timesteps)
+        print("Nummer of timesteps:", self.diffusion.num_timesteps)
         self.schedule_sampler = schedule_sampler or UniformSampler(diffusion)
         self.weight_decay = weight_decay
         self.lr_anneal_steps = lr_anneal_steps
@@ -226,8 +228,6 @@ class TrainLoop:
                 logger.dumpkvs()
             
             if self.step % 100 == 0:
-                logger.logkv(f"rank_{self.rank}_step", self.step)
-                logger.logkv(f"rank_{self.rank}_samples", (self.step + self.resume_step) * self.batch_size)
                 print(f"[Rank {self.rank}] Step {self.step} — processed {(self.step + self.resume_step) * self.batch_size} samples.")
 
             if self.step % self.save_interval == 0 and self.rank==0:
@@ -366,9 +366,9 @@ class TrainLoop:
                 
             loss = (losses["mse_wav"] * weights).mean()
         
+            # If we have a mask loss, add it to the total loss and lambda_mask specified in run.sh file or default 10.0
             if "masked_mse" in losses:
-                lambda_mask = 10.0  # adjusted from 1.0 to 10.
-                loss = loss + lambda_mask * losses["masked_mse"]
+                loss = loss + self.lambda_mask * losses["masked_mse"]
             
             lossmse = loss.detach()
             
@@ -379,15 +379,6 @@ class TrainLoop:
                 self.grad_scaler.scale(loss).backward()
             else:
                 loss.backward()
-                if self.step % 50 == 0:
-                    for name, param in self.model.named_parameters():
-                        if param.grad is not None:
-                            grad_mean = param.grad.mean().item()
-                            logger.log(f"[Step {self.step}] [Rank {self.rank}] {name} grad mean: {grad_mean:.4e}")
-                        break
-            
-
-                
             return lossmse.detach(), sample, sample_idwt
 
     def _anneal_lr(self):
@@ -407,20 +398,7 @@ class TrainLoop:
         def save_checkpoint(rate, state_dict):
             if not dist.is_initialized() or dist.get_rank() == 0:
                 logger.log("Saving model...")
-                if self.dataset == 'brats':
-                    filename = f"brats_{(self.step+self.resume_step):06d}.pt"
-                elif self.dataset == 'lidc-idri':
-                    filename = f"lidc-idri_{(self.step+self.resume_step):06d}.pt"
-                elif self.dataset == 'my_data':
-                    if self.training_mode == "bdtrain":
-                        filename = f"my_data_bd_{(self.step+self.resume_step):06d}.pt"
-                    else: # if just regular training
-                        if self.conditioning_image == "brain" or self.conditioning_image == "skull":
-                            condition_str = self.conditioning_image
-                        else:
-                            condition_str = "none"
-                        filename = f"my_data_t_{self.target}_c_{condition_str}_{(self.step+self.resume_step):06d}.pt"
-                elif self.dataset == 'tooth':
+                if self.dataset == 'tooth':
                     cond_str = "none"
                     if self.conditioning_image is not None and self.conditioning_image != "none":
                         cond_str = "tooth"
@@ -434,7 +412,7 @@ class TrainLoop:
         save_checkpoint(0, self.model.state_dict())
 
 
-        #The opt is hardcoded to my_data now, can be adjusted if name of dataset changes, or expanded if necesarry.
+        #The opt is hardcoded to tooth now, can be adjusted if name of dataset changes, or expanded if necesarry.
         if not dist.is_initialized() or dist.get_rank() == 0:
             checkpoint_dir = os.path.join(logger.get_dir(), 'checkpoints')
             if self.dataset == "tooth":
@@ -442,16 +420,6 @@ class TrainLoop:
                 if self.conditioning_image is not None and self.conditioning_image != "none":
                     cond_str = "tooth"
                 optfilename = f"opt_tooth_target_tooth_cond_{cond_str}_{(self.step + self.resume_step):06d}.pt"
-                
-                
-            elif self.training_mode == "bdtrain":
-                optfilename = f"opt_my_data_bd_{(self.step + self.resume_step):06d}.pt"
-            else:
-                if self.conditioning_image == "brain" or self.conditioning_image == "skull":
-                    condition_str = self.conditioning_image
-                else:
-                    condition_str = "none"
-                optfilename = f"opt_my_data_t_{self.target}_c_{condition_str}_{(self.step + self.resume_step):06d}.pt"
             with bf.BlobFile(
                 bf.join(checkpoint_dir, optfilename),
                 "wb",

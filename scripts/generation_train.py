@@ -123,6 +123,7 @@ def main():
         target=args.target,
         training_mode=args.training_mode,
         conditioning_image=args.conditioning_image,
+        lambda_mask=args.lambda_mask,
     ).run_loop()
     
     dist.destroy_process_group()
@@ -139,6 +140,7 @@ def create_argparser():
         conditioning_image="none",
         schedule_sampler="uniform",
         lr=1e-4,
+        lambda_mask=10.0,
         weight_decay=0.0,
         lr_anneal_steps=0,
         batch_size=1,
