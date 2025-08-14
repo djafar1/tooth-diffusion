@@ -60,17 +60,18 @@ def main():
     logger.log(f"Rank {rank}/{world_size}: Creating model and diffusion...")
     arguments = args_to_dict(args, model_and_diffusion_defaults().keys())
     
+    # Model and diffusion creation
     model, diffusion = create_model_and_diffusion(**arguments)
-
     model = model.to(device)
-    model = th.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank])
+    model = th.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank]) # Wrap model for distributed training
 
     # logger.log("Number of trainable parameters: {}".format(np.array([np.array(p.shape).prod() for p in model.parameters()]).sum()))
     logger.log(f"Rank {rank}: Creating schedule sampler...")
-    schedule_sampler = create_named_schedule_sampler(args.schedule_sampler, diffusion,  maxt=diffusion.num_timesteps)
+    schedule_sampler = create_named_schedule_sampler(
+        args.schedule_sampler, diffusion, maxt=args.diffusion_steps)
 
     if args.dataset == 'tooth':
-        assert args.image_size in [128, 256], "We currently just support image sizes: 128, 256"
+        assert args.image_size in [256], "We currently just support image sizes 256"
         ds = ToothVolumes(
             directory=args.data_dir,
             metadata_path=args.meta_data,
@@ -142,6 +143,8 @@ def create_argparser():
         lr_anneal_steps=0,
         batch_size=1,
         microbatch=-1,
+        beta_min=0.1,
+        beta_max=20.0,
         ema_rate="0.9999",
         log_interval=100,
         save_interval=5000,

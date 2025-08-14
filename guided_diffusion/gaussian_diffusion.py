@@ -28,32 +28,27 @@ idwt = IDWT_3D('haar')
 
 import numpy as np
 
-def get_vp_sde_beta_schedule(num_diffusion_timesteps, beta_min=0.1, beta_max=20.0):
-    """
-    VP-SDE beta schedule as per Song et al (2021c) and NVIDIA DDGAN.
-    """
-    print("Using VP-SDE beta schedule with beta_min={} and beta_max={}".format(beta_min, beta_max))
-    
-    T = num_diffusion_timesteps
+
+def var_func_vp(t, beta_min, beta_max):
+    log_mean_coeff = -0.25 * t ** 2 * \
+        (beta_max - beta_min) - 0.5 * t * beta_min
+    var = 1. - torch.exp(2. * log_mean_coeff)
+    return var
+
+def betas_for_vp_sde(n_timestep, beta_min, beta_max):
     eps_small = 1e-3
-    t_arr = np.linspace(0, 1, T+1, dtype=np.float64)
-    t_arr = t_arr * (1. - eps_small) + eps_small
 
-    log_mean_coeff = -0.25 * t_arr**2 * (beta_max - beta_min) - 0.5 * t_arr * beta_min
-    var = 1. - np.exp(2. * log_mean_coeff)   # variance at each t
+    t = np.arange(0, n_timestep + 1, dtype=np.float64)
+    t = t / n_timestep
+    t = torch.from_numpy(t) * (1. - eps_small) + eps_small
 
-    alpha_bars = 1. - var
-    betas = []
-    for i in range(1, len(alpha_bars)):
-        beta_t = 1. - (alpha_bars[i] / alpha_bars[i-1])
-        betas.append(beta_t)
-
-    betas = np.array(betas, dtype=np.float64)
-    betas[0] = 1e-8  
+    var = var_func_vp(t, beta_min, beta_max)
+    alpha_bars = 1.0 - var
+    betas = 1 - alpha_bars[1:] / alpha_bars[:-1]
+    
     return betas
 
-
-def get_named_beta_schedule(schedule_name, num_diffusion_timesteps):
+def get_named_beta_schedule(schedule_name, num_diffusion_timesteps, beta_min=0.1, beta_max=20.0):
     """
     Get a pre-defined beta schedule for the given name.
 
@@ -77,7 +72,7 @@ def get_named_beta_schedule(schedule_name, num_diffusion_timesteps):
             lambda t: math.cos((t + 0.008) / 1.008 * math.pi / 2) ** 2,
         )
     elif schedule_name == "vp_sde":
-        return get_vp_sde_beta_schedule(num_diffusion_timesteps)
+        return betas_for_vp_sde(num_diffusion_timesteps, beta_min, beta_max)
     else:
         raise NotImplementedError(f"unknown beta schedule: {schedule_name}")
 

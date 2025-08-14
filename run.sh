@@ -60,6 +60,8 @@ elif [[ $MODE == 'train']]; then
 fi
 
 COMMON="
+--beta_min=0.1
+--beta_max=20.0
 --dataset=${DATASET}
 --num_channels=${CHANNELS}
 --class_cond=False
@@ -71,7 +73,7 @@ COMMON="
 --attention_resolutions=
 --channel_mult=${CHANNEL_MULT}
 --diffusion_steps=1000
---noise_schedule=linear
+--noise_schedule=vp_sde
 --rescale_learned_sigmas=False
 --rescale_timesteps=False
 --dims=3

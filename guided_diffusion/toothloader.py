@@ -14,10 +14,10 @@ class ToothVolumes(torch.utils.data.Dataset):
     def __init__(self, directory, metadata_path, test_flag=False, normalize=None, mode='train', img_size=256, augment_missing_teeth=False, reconstruct_3_mode=False):
         super().__init__()
         self.mode = mode
+        # Training augmentation only one of the modes should be True
         self.augment_missing_teeth = augment_missing_teeth        
         self.reconstruct_3_mode = reconstruct_3_mode
 
-        
         self.directory = os.path.expanduser(directory)
         self.metadata_path = os.path.expanduser(metadata_path)
         self.normalize = normalize or (lambda x: x)
@@ -32,7 +32,7 @@ class ToothVolumes(torch.utils.data.Dataset):
         if not os.path.exists(self.metadata_path):
             raise FileNotFoundError(f"metadata.csv no found at {self.metadata_path}")
         self.metadata = pd.read_excel(self.metadata_path)
-        self.metadata.columns = self.metadata.columns.str.strip()  # ← removes leading/trailing spaces
+        self.metadata.columns = self.metadata.columns.str.strip()  # removes leading/trailing spaces
      
         for f in os.listdir(self.image_dir):
             if not f.endswith(".nii.gz"):
@@ -45,13 +45,11 @@ class ToothVolumes(torch.utils.data.Dataset):
                     "label": label_path,
                     "name": f
                 })
-
         print(f"Found {len(self.database)} samples in '{mode}' set.")
-        
+      
     #Normalize
     def normalize_image(self, x):
         return ((x - x.min()) / (x.max() - x.min()))
-    
     
     def __getitem__(self, x):
         filedict = self.database[x]
@@ -78,30 +76,9 @@ class ToothVolumes(torch.utils.data.Dataset):
         for i in range(1, 33):
             if (label_np == i).any():
                 tooth_presence[i - 1] = 1.0
-
-        # Vectors 2–5: Metadata-based binary conditions 
-        def get_vector(col_name):
-            cell_value = row_metadata[col_name]
-            vector = torch.zeros(32, dtype=torch.float32)
-            if pd.isna(cell_value):
-                return vector
-            for entry in str(cell_value).split(','):
-                entry = entry.strip()
-                if entry.isdigit():
-                    idx = int(entry)
-                    if 1 <= idx <= 32:
-                        vector[idx - 1] = 1.0
-            return vector
         
-        # Extracting vectors from metadata
-        vectors = {
-            "tooth_presence": tooth_presence,
-            #"crown_fill": get_vector('1.crown filling'),
-            #"root_crown": get_vector('2.root and crown filling'),
-            #"bridge": get_vector('3.bridge'),
-            #"implant": get_vector('4.implant'),
-        }
-
+        vectors = {"tooth_presence": tooth_presence}
+        
         # Make copy to ensure that it doesn't modify each other
         target_image_np = image_np.copy()
         target_label_np = label_np.copy()
@@ -117,10 +94,8 @@ class ToothVolumes(torch.utils.data.Dataset):
                     max_remove = max(1, int(np.ceil(0.5 * len(present_indices))))
                     num = np.random.randint(1, max_remove + 1)
                     removed_teeth = np.random.choice(present_indices, num, replace=False)
-                    
                     # Remove the teeth from the target image, KEEP original label, so we can we penalize for not removing them
                     # Remove tooth from presence vector, so we can penalize for not removing them
-                    
                     target_image_np = inpaint_teeth(target_image_np, target_label_np, [idx+1 for idx in removed_teeth])
                     for idx in removed_teeth:
                         vectors["tooth_presence"][idx] = 0.0
@@ -130,10 +105,8 @@ class ToothVolumes(torch.utils.data.Dataset):
                     max_remove = max(1, int(np.ceil(0.5 * len(present_indices))))
                     num = np.random.randint(1, max_remove + 1)
                     removed_teeth = np.random.choice(present_indices, num, replace=False)
-                    
                     # Remove the teeth from the cond image, KEEP original label, so we can we penalize for not removing them
                     # Keep original vector precence, so we can penalize for not adding them
-                    
                     cond_image_np = inpaint_teeth(cond_image_np, cond_label_np, [idx+1 for idx in removed_teeth])
                     for idx in removed_teeth:
                         cond_label_np[cond_label_np == (idx+1)] = 0
@@ -169,15 +142,8 @@ class ToothVolumes(torch.utils.data.Dataset):
             cond_image[:, :, :, :] = cond_image_tensor
             cond_label[:, :, :, :] = cond_label_tensor
 
-            if self.img_size == 128:
-                downsample = nn.AvgPool3d(kernel_size=2, stride=2)
-                image = downsample(image)
-                label = downsample(label).long()
-                cond_image = downsample(cond_image)
-                cond_label = downsample(cond_label).long()
-            else:
-                label = label.long()
-                cond_label = cond_label.long()
+            label = label.long()
+            cond_label = cond_label.long()
         else:
             image = torch.tensor(image_np, dtype=torch.float32).unsqueeze(0)
             label = torch.tensor(label_np, dtype=torch.long).unsqueeze(0)
@@ -210,7 +176,7 @@ class ToothVolumes(torch.utils.data.Dataset):
             tooth_presence_flipped[16:] = vectors["tooth_presence"][16:].flip(0)
             vectors["tooth_presence"] = tooth_presence_flipped
                         
-        if self.mode in ['eval']:
+        if self.mode in ['eval', 'fake']:
             return {
                 "image": image,
                 "label": label,
@@ -219,7 +185,6 @@ class ToothVolumes(torch.utils.data.Dataset):
                 "name": [basename],
                 "tooth_presence": vectors["tooth_presence"],
             }
-
         return {
             "image": image,
             "label": label,
@@ -230,6 +195,7 @@ class ToothVolumes(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.database)
 
+# Inpainting function to remove teeth
 def inpaint_teeth(image_np, label_np, tooth_ids, sphere_radius=2):
     struct = ball(sphere_radius)
 

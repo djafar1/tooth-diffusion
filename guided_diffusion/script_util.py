@@ -22,7 +22,7 @@ def diffusion_defaults():
         predict_xstart=False,
         rescale_timesteps=False,
         rescale_learned_sigmas=False,
-        dataset='brats',
+        dataset='tooth',
         dims=2,
         num_groups=32,
         in_channels=1,
@@ -55,6 +55,8 @@ def model_and_diffusion_defaults():
     res = dict(
         image_size=64,
         num_channels=128,
+        beta_min=0.1,
+        beta_max=20.0,
         num_res_blocks=2,
         num_heads=4,
         num_heads_upsample=-1,
@@ -91,6 +93,8 @@ def classifier_and_diffusion_defaults():
 
 def create_model_and_diffusion(
     image_size,
+    beta_min,
+    beta_max,
     class_cond,
     learn_sigma,
     num_channels,
@@ -151,6 +155,8 @@ def create_model_and_diffusion(
         use_freq=use_freq,
     )
     diffusion = create_gaussian_diffusion(
+        beta_min=beta_min,
+        beta_max=beta_max,
         steps=diffusion_steps,
         learn_sigma=learn_sigma,
         noise_schedule=noise_schedule,
@@ -505,6 +511,8 @@ def sr_create_model(
 
 def create_gaussian_diffusion(
     *,
+    beta_min=0.1,
+    beta_max=20.0,
     steps=1000,
     learn_sigma=False,
     sigma_small=False,
@@ -516,7 +524,7 @@ def create_gaussian_diffusion(
     timestep_respacing="",
     mode='default',
 ):
-    betas = gd.get_named_beta_schedule(noise_schedule, steps)
+    betas = gd.get_named_beta_schedule(noise_schedule, steps, beta_min, beta_max)
     if use_kl:
         loss_type = gd.LossType.RESCALED_KL
     elif rescale_learned_sigmas:
