@@ -74,8 +74,6 @@ bash run.sh train teeth "" [teeth|""]
   - `teeth` → enable tooth conditioning  
   - `""` (left empty) → no conditioning (synthetic generation)  
 
----
-
 **GPU configuration:**  
 At the **top of `run.sh`**, you must set which GPUs to use and how many. Training will always run with **DDP (Distributed Data Parallel)**, even if you specify a single GPU.
 
@@ -103,8 +101,6 @@ bash run.sh sample teeth ./checkpoints/model.pt [teeth|""]
 
 Generated CBCT volumes are saved to `./results/`.
 
----
-
 ## Noise Scheduler
 
 We implement a **VP-SDE inspired noise scheduler** (`vp_sde`) that improves both training efficiency and sampling speed.  
@@ -130,8 +126,6 @@ We implement a **VP-SDE inspired noise scheduler** (`vp_sde`) that improves both
 
 - **Important:**  
   Remember to also update the values of `--diffusion_steps` and `--sampling_steps` in `run.sh` to match your desired training and sampling step counts.
-
----
 
 ## Util
 
@@ -168,5 +162,3 @@ Our code is based on / inspired by the following repositories:
 * [https://github.com/pfriedri/cwdm](https://github.com/pfriedri/cwdm) (MIT License)
 
 Thanks to the authors for making these resources openly available.
-
----
