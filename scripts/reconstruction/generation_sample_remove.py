@@ -187,6 +187,7 @@ def main():
         ).to(dist_util.dev())
 
         sample_out = diffusion.p_sample_loop(
+            t=args.sampling_steps,    
             model=model,
             shape=img.shape,
             noise=img,
