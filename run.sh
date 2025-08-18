@@ -130,5 +130,5 @@ if [[ $MODE == 'train']]; then
   torchrun --nproc_per_node=$NUMBERofGPUS --master_port=$MASTERPORT \
     scripts/generation_train.py $TRAIN $COMMON
 else
-  python scripts/generation_sample_brain_approac.py $SAMPLE $COMMON;
+  python scripts/reconstruction/generation_sample_add.py $SAMPLE $COMMON;
 fi

@@ -1,8 +1,29 @@
-# WDM-3D-COND-V2
+# Wavelet Tooth Diffusion: Guided 3D CBCT Synthesis
 
-This repository contains the final implementation for the Bachelor's thesis: **Brain MRI Generation with Guidance and Explainability**, conducted at the University of Copenhagen, Department of Computer Science.
+This repository contains the code for **Wavelet Tooth Diffusion**, a 3D conditional diffusion framework for dental CBCT imaging. The model integrates **wavelet-domain denoising diffusion** with **tooth-level conditioning** to enable realistic synthesis, reconstruction, and editing of CBCT scans.
 
-The project extends the WDM-3D diffusion model for 3D brain MRI synthesis by enabling **conditional generation**, **explainability**, **fairness evaluation**, and **counterfactual synthesis** through the design of an advanced model called `wdm-3d-cond-v2`.
+## Abstract
+Despite the growing importance of dental CBCT scans for diagnosis and treatment planning, generating anatomically realistic scans 
+with fine-grained control remains a challenge in medical image synthesis. In this work, we propose a novel conditional diffusion framework
+for 3D dental volume generation, guided by tooth-level binary attributes that allow precise control over tooth presence and configuration. Our
+approach integrates wavelet-based denoising diffusion, FiLM conditioning, and masked loss functions to focus learning on relevant anatomical
+structures. We evaluate the model across diverse tasks, such as tooth addition, removal, and full dentition synthesis, using both paired and
+distributional similarity metrics. Results show strong fidelity and generalization with low FID scores, robust inpainting performance, and SSIM
+values above 0.91 even on unseen scans. These findings highlight the potential of controllable dental image synthesis for data augmentation,
+simulation, and clinically informed AI applications.
+
+![Wavelet Architecture](./assets/wdm.png)
+
+## Highlights
+
+- **Wavelet-based diffusion** for efficient and high-resolution 3D CBCT volume generation.  
+- **Fine-grained tooth conditioning** via presence vectors (32 teeth).  
+- Supports multiple modes:
+  - **Reconstruction** of CBCT volumes  
+  - **Tooth addition** (inpainting missing teeth)  
+  - **Tooth removal** (simulating absence for augmentation)  
+- **Masked loss functions** to focus learning on tooth-bearing regions.  
+- **Distributed training** with PyTorch DDP.
 
 ## Dependencies
 
@@ -13,112 +34,87 @@ mamba env create -f environment.yml
 mamba activate wdm
 ```
 
-This version builds directly on top of the WDM-3D architecture, integrating:
+## Data Setup
 
-* Demographic variable conditioning (age, sex, diagnosis)
-* Optional image conditioning (e.g., `brain`, `skull`, or `none`)
-* Flexible generation target specification (`brain` or `skull`)
-
-All evaluations and final experiments in the thesis are performed using this version.
-
-## Data Structure
-
-The input data is structured as follows:
+Organize CBCT data as:
 
 ```
-data/
-  metadata.csv         # Contains demographic variables for all subjects
+prep_data/
   train/
-    brain/
-    images/
-    labels/
-    mask/
+    Images/
+    Labels/
   valid/
-    brain/
-    images/
-    labels/
-    mask/
+    Images/
+    Labels/
   test/
-    brain/
-    images/
-    labels/
-    mask/
+    Images/
+    Labels/
+  MetaData.xlsx
 ```
 
-### Metadata
+- **Images/** and **Labels/** contain paired 3D CBCT volumes (`.nii.gz`).  
+- **MetaData.xlsx** encodes patient information and tooth presence (1–32). 
 
-* `metadata.csv` contains columns such as `subject_id`, `age`, `sex`, and `diagnosis`, and must reside in the top-level `data/` directory.
+## Usage
 
-## Final Architecture
+All training and sampling is handled via `run.sh`.
 
-The model used is a **WavU-Net-based Wavelet Diffusion Model** with demographic conditioning embedded into the timestep and optional image-based conditioning via DWT-concatenation.
 
-![WDM-3D-COND-V2 Architecture](../wunet-cond.png)
-
-## Models and Evaluation
-
-We explore two conditional generation models:
-
-### Approach 1: Brain Synthesis from Noise
-
-* Goal: Explore **fairness** and **explainability** by generating brain MRIs from pure noise.
-* Conditioning: Demographic variables only.
-* Evaluation: FID, SSIM, BRISQUE, PSNR, and biomarker alignment (volume, surface area).
-
-### Approach 2: Brain Reconstruction from Brain
-
-* Goal: Explore **counterfactual synthesis** by reconstructing a brain from itself while altering the demographic conditioning.
-* Conditioning: Both brain image and demographic variables.
-* Evaluation: Wilcoxon test, 1-Wasserstein distance, heatmap analysis of structural differences.
-
-Both models were trained using NVIDIA A100 (40GB and 80GB) GPUs.
-## Running the Code
-
-All training and sampling is managed through `run.sh`, which supports training from scratch, resuming from checkpoints, and sampling with DDPM.
-
-### Required Arguments:
+### Training
 
 ```bash
-bash run.sh <mode> <target> <checkpoint> <conditioning_image>
+bash run.sh train teeth "" [teeth|""]
 ```
 
-Where:
+- `train` – training mode  
+- `teeth` – task target  
+- `""` – train from scratch (replace with checkpoint path to resume)  
+- `[teeth|"" ]` – last argument can be either:  
+  - `teeth` → enable tooth conditioning  
+  - `""` (left empty) → no conditioning (synthetic generation)  
 
-* `mode`: `train`, `bdtrain`, or `sample`
-* `target`: `brain` or `skull`
-* `checkpoint`: Path to a `.pt` file or empty string
-* `conditioning_image`: `brain`, `skull`, or `none`
+---
 
-### Example: Training
+### Sampling
 
 ```bash
-bash run.sh train brain "" brain
+bash run.sh sample teeth ./checkpoints/model.pt [teeth|""]
 ```
 
-### Example: Sampling
+- `sample` – sampling mode  
+- `teeth` – task target  
+- `./checkpoints/model.pt` – path to trained checkpoint  
+- `[teeth|"" ]` – last argument can be either:  
+  - `teeth` → enable tooth conditioning  
+  - `""` (left empty) → no conditioning (synthetic generation)  
 
-```bash
-bash run.sh sample brain ./checkpoints/my_model.pt none
-```
+Generated CBCT volumes are saved to `./results/`.
 
 ## Util
 
 The `util/` folder contains helper scripts for:
 
-* `brain_pullout.py`: Extracts brain volumes from labeled MRI scans by removing background (`labels==0`) and generates binary brain masks
-* `data_splitter.py`: Splits the full dataset into structured `train`, `valid`, and `test` sets based on configurable ratios
+- `preproc_tooth_data.py`: Uses bounding box detection, clipping, and padding to fit CBCT volumes into a `256³` space.
 
 ## Scripts
 
-* `generation_train.py` — Main training loop for the wdm-3d-cond-v2 model
-* `generation_sample_brain_approach2.py` — Counterfactual synthesis evaluation (Approach 2)
-* `generation_sample_random_cond.py` — Demographic-based sampling for fairness evaluation (Approach 1)
-* `generation_sample_brain_random.py` — Reconstructs randomly selected brain images using their own associated demographic and image conditions
-* `generation_sample_30.py` — For Approach 1, uses `group_csv=./train_data_metrics.csv` in `run.sh` to generate a matching number of samples for each of the 30 demographic groups
-* `generation_sample_30_explain.py`, `generation_sample_20_explain.py` — Explainability evaluations (Approach 1)
-* `generation_sample_cond.py` — Baseline conditional generation
+Sampling scripts are divided into two folders:
 
----
+### Reconstruction (`scripts/reconstruction/`):
+- `generation_sample_add.py`
+- `generation_sample_inpaint_all.py`
+- `generation_sample_remove.py`
+
+### Synthetic (`scripts/synthetic/`):
+- `generation_sample_synth.py`
+
+> **Note:** In `run.sh`, you need to manually update the line:
+> 
+> ```bash
+> python scripts/reconstruction/generation_sample_add.py $SAMPLE $COMMON
+> ```
+>
+> depending on which script you want to use (e.g., replace with `generation_sample_remove.py`, etc).
 
 ## Acknowledgements
 
@@ -131,7 +127,3 @@ Our code is based on / inspired by the following repositories:
 Thanks to the authors for making these resources openly available.
 
 ---
-
-This implementation is self-contained and intended to be used directly on structured ADNI-derived data, with segmentation labels obtained via FreeSurfer preprocessing. All modeling, training, evaluation, and sampling tasks are conducted using `wdm-3d-cond-v2` only.
-
-This work was conducted as part of a Bachelor's thesis project at the University of Copenhagen.
