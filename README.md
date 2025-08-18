@@ -60,6 +60,7 @@ prep_data/
 All training and sampling is handled via `run.sh`.
 
 
+
 ### Training
 
 ```bash
@@ -74,6 +75,20 @@ bash run.sh train teeth "" [teeth|""]
   - `""` (left empty) → no conditioning (synthetic generation)  
 
 ---
+
+**GPU configuration:**  
+At the **top of `run.sh`**, you must set which GPUs to use and how many. Training will always run with **DDP (Distributed Data Parallel)**, even if you specify a single GPU.
+
+Example (`run.sh`):
+
+```bash
+# === GPU CONFIG ===
+# Comma-separated GPU indices (as seen in nvidia-smi)
+GPU_IDS=0,1      # e.g., 0 for single GPU, 0,1 for two GPUs
+NUM_GPUS=2       # must match number of IDs
+
+export CUDA_VISIBLE_DEVICES=$GPU_IDS
+
 
 ### Sampling
 
