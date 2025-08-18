@@ -19,7 +19,7 @@ RECONSTRUCT_3_MODE=True; # For training the model with 3 different scenarios, re
 
 # settings for sampling/inference
 ITERATIONS=1200;        # training iteration (as a multiple of 1k) checkpoint to use for sampling
-SAMPLING_STEPS=0        # number of steps for accelerated sampling, 0 for the default 1000
+SAMPLING_STEPS=2        # number of steps for accelerated sampling, 0 for the default 1000
 RUN_DIR="";             # tensorboard dir to be set for the evaluation
 
 # detailed settings, currently only for wnet_256 
@@ -72,7 +72,7 @@ COMMON="
 --use_scale_shift_norm=True
 --attention_resolutions=
 --channel_mult=${CHANNEL_MULT}
---diffusion_steps=1000
+--diffusion_steps=2
 --noise_schedule=vp_sde
 --rescale_learned_sigmas=False
 --rescale_timesteps=False

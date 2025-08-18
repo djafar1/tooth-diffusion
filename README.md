@@ -83,12 +83,10 @@ Example (`run.sh`):
 
 ```bash
 # === GPU CONFIG ===
-# Comma-separated GPU indices (as seen in nvidia-smi)
-GPU_IDS=0,1      # e.g., 0 for single GPU, 0,1 for two GPUs
-NUM_GPUS=2       # must match number of IDs
-
-export CUDA_VISIBLE_DEVICES=$GPU_IDS
-
+GPU=0,1              # GPUs to use (as seen in nvidia-smi), e.g. 0 for single GPU, 0,1 for two GPUs
+NUMBERofGPUS=2       # must match the number of GPUs listed above
+MASTERPORT=12345     # master port for distributed training (can be left as default)
+```
 
 ### Sampling
 
@@ -104,6 +102,36 @@ bash run.sh sample teeth ./checkpoints/model.pt [teeth|""]
   - `""` (left empty) → no conditioning (synthetic generation)  
 
 Generated CBCT volumes are saved to `./results/`.
+
+---
+
+## Noise Scheduler
+
+We implement a **VP-SDE inspired noise scheduler** (`vp_sde`) that improves both training efficiency and sampling speed.  
+
+- **How to enable:**  
+  In the `$COMMON` block of `run.sh`, set:  
+
+  ```bash
+  --noise_schedule=vp_sde
+  ```  
+
+  For regular diffusion, use:  
+
+  ```bash
+  --noise_schedule=linear
+  ```  
+
+- **Efficiency:**  
+  VP-SDE achieves **comparable quality** across a wide range of steps (e.g., results are similar from `t=2` up to `t=1000`).  
+
+- **Speed-up:**  
+  Sampling is up to **800× faster** while maintaining strong fidelity.
+
+- **Important:**  
+  Remember to also update the values of `--diffusion_steps` and `--sampling_steps` in `run.sh` to match your desired training and sampling step counts.
+
+---
 
 ## Util
 
