@@ -12,7 +12,11 @@ distributional similarity metrics. Results show strong fidelity and generalizati
 values above 0.91 even on unseen scans. These findings highlight the potential of controllable dental image synthesis for data augmentation,
 simulation, and clinically informed AI applications.
 
-![Wavelet Architecture](./assets/wdm.png)
+![Wavelet Architecture](./assets/diffusion-model.png)
+
+## Sample Results
+
+to be written
 
 ## Highlights
 
@@ -58,7 +62,6 @@ prep_data/
 ## Usage
 
 All training and sampling is handled via `run.sh`.
-
 
 
 ### Training
@@ -121,8 +124,8 @@ We implement a **VP-SDE inspired noise scheduler** (`vp_sde`) that improves both
 - **Efficiency:**  
   VP-SDE achieves **comparable quality** across a wide range of steps (e.g., results are similar from `t=2` up to `t=1000`).  
 
-- **Speed-up:**  
-  Sampling is up to **800× faster** while maintaining strong fidelity.
+- **Accelerated Sampling:**  
+  Sampling with only `t=2` denoising steps achieves generation that is **several orders of magnitude faster** than standard approaches (`t=1000`) with comparable output quality.
 
 - **Important:**  
   Remember to also update the values of `--diffusion_steps` and `--sampling_steps` in `run.sh` to match your desired training and sampling step counts.
@@ -157,8 +160,7 @@ Sampling scripts are divided into two folders:
 
 Our code is based on / inspired by the following repositories:
 
-* [https://github.com/openai/guided-diffusion](https://github.com/openai/guided-diffusion) (MIT License)
-* [https://github.com/pfriedri/wdm-3d](https://github.com/pfriedri/wdm-3d) (MIT License)
 * [https://github.com/pfriedri/cwdm](https://github.com/pfriedri/cwdm) (MIT License)
+* [https://github.com/NVlabs/denoising-diffusion-gan](https://github.com/NVlabs/denoising-diffusion-gan) (NVIDIA License)
 
 Thanks to the authors for making these resources openly available.
