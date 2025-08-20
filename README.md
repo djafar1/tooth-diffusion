@@ -17,7 +17,7 @@ simulation, and clinically informed AI applications.
 
 ## Sample Results
 
-<p align="center">
+<div align="center">
   <table>
     <tr>
       <td align="center"><img src="./assets/1000966359_20180113_middle_slice.jpg" height="150" width="150 "><br>Real Scan 1</td>
@@ -26,7 +26,7 @@ simulation, and clinically informed AI applications.
       <td align="center"><img src="./assets/1001022839_20180110_middle_slice.jpg" height="150" width="150" ><br>Synthetic Scan 2</td>
     </tr>
   </table>
-</p>
+</div>
 
 *Fig. 2. Qualitative comparison between generated CBCT scans and their corresponding real scans with complete dentition.*
 
