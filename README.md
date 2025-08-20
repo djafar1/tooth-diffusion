@@ -17,26 +17,55 @@ simulation, and clinically informed AI applications.
 
 ## Sample Results
 
-| Real Scan 1 | Synthetic Scan 1 | Real Scan 2 | Synthetic Scan 2 |
-|-------------|------------------|-------------|------------------|
-| ![Real1](./assets/1000966359_20180113_middle_slice.jpg) | ![Synth1](./assets/1000966359_20180113_middle_slice_synthetic.jpg) | ![Real2](./assets/1001022839_20180110_middle_slice.jpg) | ![Synth2](./assets/1001022839_20180110_middle_slice.jpg) |
+<p align="center">
+  <table>
+    <tr>
+      <td align="center"><img src="./assets/1000966359_20180113_middle_slice.jpg" height="150" width="150 "><br>Real Scan 1</td>
+      <td align="center"><img src="./assets/1000966359_20180113_middle_slice_synthetic.jpg" height="150" width="150" ><br>Synthetic Scan 1</td>
+      <td align="center"><img src="./assets/1001022839_20180110_middle_slice.jpg" height="150" width="150" ><br>Real Scan 2</td>
+      <td align="center"><img src="./assets/1001022839_20180110_middle_slice.jpg" height="150" width="150" ><br>Synthetic Scan 2</td>
+    </tr>
+  </table>
+</p>
 
 *Fig. 2. Qualitative comparison between generated CBCT scans and their corresponding real scans with complete dentition.*
 
+
 ---
 
-
-| Real (No Teeth 16, 1) | Synthetic (Model Tries to Add 16, 1) |
-|------------------------|--------------------------------------|
-| ![Real](./assets/1000995722_20180112.nii_middle_slice.jpg) | ![Synth](./assets/tp_added_16_1_1000995722_20180112.nii_middle_slice.jpg) |
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="./assets/1000995722_20180112.nii_middle_slice.jpg" height="250"><br>
+        <sub>Real (No Teeth 16, 1)</sub>
+      </td>
+      <td align="center">
+        <img src="./assets/tp_added_16_1_1000995722_20180112.nii_middle_slice.jpg" height="250"><br>
+        <sub>Synthetic (Model Tries to Add 16, 1)</sub>
+      </td>
+    </tr>
+  </table>
+</div>
 
 *Fig. 3. Qualitative example where the model tries to add synthetically previously absent teeth 16 and 1.*
 
 ---
 
-| Real (With Teeth 3, 2) | Synthetic (Model Removes Teeth 3, 2) |
-|-------------------------|--------------------------------------|
-| ![Real](./assets/1000966359_20180113.nii_middle_slice.jpg) | ![Synth](./assets/tp_removed_3_2_1000966359_20180113.nii_middle_slice.jpg) |
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="./assets/1000966359_20180113.nii_middle_slice.jpg" height="250"><br>
+        <sub>Real (With Teeth 3, 2)</sub>
+      </td>
+      <td align="center">
+        <img src="./assets/tp_removed_3_2_1000966359_20180113.nii_middle_slice.jpg" height="250"><br>
+        <sub>Synthetic (Model Removes Teeth 3, 2)</sub>
+      </td>
+    </tr>
+  </table>
+</div>
 
 *Fig. 4. Qualitative example where the model removes teeth 3 and 2 from the original scan.*
 
@@ -59,8 +88,8 @@ simulation, and clinically informed AI applications.
 Create and activate the environment with:
 
 ```bash
-mamba env create -f environment.yml
-mamba activate wdm
+conda env create -f environment.yml
+conda activate wdm
 ```
 
 ## Data Setup
