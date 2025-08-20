@@ -20,10 +20,10 @@ simulation, and clinically informed AI applications.
 <div align="center">
   <table>
     <tr>
-      <td align="center"><img src="./assets/1000966359_20180113_middle_slice.jpg" height="150" width="150 "><br>Real Scan 1</td>
-      <td align="center"><img src="./assets/1000966359_20180113_middle_slice_synthetic.jpg" height="150" width="150" ><br>Synthetic Scan 1</td>
-      <td align="center"><img src="./assets/1001022839_20180110_middle_slice.jpg" height="150" width="150" ><br>Real Scan 2</td>
-      <td align="center"><img src="./assets/1001022839_20180110_middle_slice.jpg" height="150" width="150" ><br>Synthetic Scan 2</td>
+      <td align="center"><img src="./assets/1000966359_20180113_middle_slice.jpg" width="150 "><br>Real Scan 1</td>
+      <td align="center"><img src="./assets/1000966359_20180113_middle_slice_synthetic.jpg" width="150" ><br>Synthetic Scan 1</td>
+      <td align="center"><img src="./assets/1001022839_20180110_middle_slice.jpg" width="150" ><br>Real Scan 2</td>
+      <td align="center"><img src="./assets/1001022839_20180110_middle_slice.jpg" width="150" ><br>Synthetic Scan 2</td>
     </tr>
   </table>
 </div>
