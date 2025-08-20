@@ -13,10 +13,35 @@ values above 0.91 even on unseen scans. These findings highlight the potential o
 simulation, and clinically informed AI applications.
 
 ![Wavelet Architecture](./assets/diffusion-model.png)
+*Fig. 1. Overview of the proposed framework. A guided diffusion model is used for 3D CBCT scan generation with editable tooth configurations.*
 
 ## Sample Results
 
-to be written
+| Real Scan 1 | Synthetic Scan 1 | Real Scan 2 | Synthetic Scan 2 |
+|-------------|------------------|-------------|------------------|
+| ![Real1](./assets/1000966359_20180113_middle_slice.jpg) | ![Synth1](./assets/1000966359_20180113_middle_slice_synthetic.jpg) | ![Real2](./assets/1001022839_20180110_middle_slice.jpg) | ![Synth2](./assets/1001022839_20180110_middle_slice.jpg) |
+
+*Fig. 2. Qualitative comparison between generated CBCT scans and their corresponding real scans with complete dentition.*
+
+---
+
+
+| Real (No Teeth 16, 1) | Synthetic (Model Tries to Add 16, 1) |
+|------------------------|--------------------------------------|
+| ![Real](./assets/1000995722_20180112.nii_middle_slice.jpg) | ![Synth](./assets/tp_added_16_1_1000995722_20180112.nii_middle_slice.jpg) |
+
+*Fig. 3. Qualitative example where the model tries to add synthetically previously absent teeth 16 and 1.*
+
+---
+
+| Real (With Teeth 3, 2) | Synthetic (Model Removes Teeth 3, 2) |
+|-------------------------|--------------------------------------|
+| ![Real](./assets/1000966359_20180113.nii_middle_slice.jpg) | ![Synth](./assets/tp_removed_3_2_1000966359_20180113.nii_middle_slice.jpg) |
+
+*Fig. 4. Qualitative example where the model removes teeth 3 and 2 from the original scan.*
+
+
+
 
 ## Highlights
 
