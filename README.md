@@ -2,6 +2,20 @@
 
 This repository contains the code for **Wavelet Tooth Diffusion**, a 3D conditional diffusion framework for dental CBCT imaging. The model integrates **wavelet-domain denoising diffusion** with **tooth-level conditioning** to enable realistic synthesis, reconstruction, and editing of CBCT scans.
 
+📄 This paper has been accepted by MICCAI Workshop on Efficient Medical AI
+
+If you find our work useful, please consider to ⭐ star this repository and 📝 cite our paper:
+
+```bibtex
+@article{said2025toothdiffusion,
+  title     = {Tooth-Diffusion: Guided 3D CBCT Synthesis with Fine-Grained Tooth Conditioning},
+  author    = {Said, Djafar Said and Gholamalizadeh, Torkan and Mehdipour Ghazi, Mostafa},
+  journal   = {arXiv preprint arXiv:2508.14276},
+  year      = {2025},
+  url       = {https://arxiv.org/abs/2508.14276}
+}
+```
+
 ## Abstract
 Despite the growing importance of dental CBCT scans for diagnosis and treatment planning, generating anatomically realistic scans 
 with fine-grained control remains a challenge in medical image synthesis. In this work, we propose a novel conditional diffusion framework
