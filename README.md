@@ -12,8 +12,7 @@ If you find our work useful, please consider to â­ star this repository and ğŸ“
   author    = {Said, Djafar Said and Gholamalizadeh, Torkan and Mehdipour Ghazi, Mostafa},
   journal   = {arXiv preprint arXiv:2508.14276},
   year      = {2025},
-  url       = {https://arxiv.org/abs/2508.14276}
-}
+  url       = {https://arxiv.org/abs/2508.14276}}
 ```
 
 ## Abstract
